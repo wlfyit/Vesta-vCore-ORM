@@ -5,7 +5,10 @@ module.exports = function (sequelize, Sequelize) {
     username: {
       type     : Sequelize.STRING,
       unique   : true,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        is: /^[a-z0-9\-_]+$/i
+      }
     },
     password: {
       type     : Sequelize.STRING,

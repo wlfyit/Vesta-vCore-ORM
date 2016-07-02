@@ -9,7 +9,10 @@ module.exports = function (sequelize, Sequelize) {
     },
     secret: {
       type     : Sequelize.STRING,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        is: /^\$2[aby]\$\d\d\$.{53}$/i
+      }
     }
   });
 

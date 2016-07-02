@@ -3,7 +3,7 @@ var router = express.Router();
 
 module.exports = function () {
 
-  router.get('/:user_id', function (req, res) {
+  router.get('/:username', function (req, res) {
     auth.routeGetUser(req.params.user_id , req, res);
   });
 

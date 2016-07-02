@@ -51,24 +51,13 @@ OAuthCode.belongsTo(OAuthClient);
 
 var OAuthToken = require('./models/oauth/token')(sequelize, Sequelize);
 OAuthToken.belongsTo(User);
-OAuthToken.belongsTo(OAuthClient); 
+OAuthToken.belongsTo(OAuthClient);
 
-sequelize.sync({force: true}).then(function () {
-  // Table created
-  Phrase.create({
-    voice : 'John',
-    gender: 'Male',
-    text  : 'aksldjhfalksjhdflkajshdflkasjhdlfas;afe;proiauw eprq[pw ie[rpqowe[priqw[epo irqv[pweo r[qwe'
-  });
-  // Table created
-  bcrypt.hash('asfdasdfasdf', 12, function (err, hash) {
-    User.create({
-      username: 'admin',
-      password: hash,
-      email   : 'aasdf@gmail.com'
-    });
-  });
+sequelize.sync().then(function () {
 });
+
+// Load Controllers
+var userController = require('./controllers/user')(redisCache, User, OAuthClient, OAuthCode, OAuthToken);
 
 // Load Routes
 var routes = require('./routes/index'),
@@ -88,7 +77,23 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
-app.use('/users', users);
+
+// api
+var apiRouter = express.Router();
+
+apiRouter.route('/oauth/client')
+  .post(userController.isAuthenticated, userController.postClients)
+  .get(userController.isAuthenticated, userController.getClients);
+
+apiRouter.route('/users')
+  .post(userController.isAuthenticated, userController.postUsers)
+  .get(userController.isAuthenticated, userController.getUsers);
+
+apiRouter.route('/users/:username')
+//.post(userController.postUser)
+  .get(userController.isAuthenticated, userController.getUser);
+
+app.use('/api', apiRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
