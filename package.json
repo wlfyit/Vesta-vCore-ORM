@@ -1,5 +1,5 @@
 {
-  "name": "untitled1",
+  "name": "Vesta-vCore",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -10,13 +10,16 @@
     "body-parser": "~1.15.1",
     "cache-manager": "~2.1.2",
     "cache-manager-redis": "~0.2.2",
+    "connect-redis": "~3.1.0",
     "cookie-parser": "~1.4.3",
     "debug": "~2.2.0",
     "express": "~4.13.4",
+    "express-session": "~1.14.0",
     "jade": "~1.11.0",
     "morgan": "~1.7.0",
     "passport": "~0.3.2",
     "passport-http": "~0.3.0",
+    "passport-http-bearer": "~1.0.1",
     "pg": "~6.0.1",
     "pg-hstore": "~2.3.2",
     "pg-native": "~1.10.0",

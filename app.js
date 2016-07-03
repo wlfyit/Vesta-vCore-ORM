@@ -1,14 +1,17 @@
 'use strict';
 // Load Modules
-var bcrypt       = require('bcrypt');
-var bodyParser   = require('body-parser'),
-    cacheManager = require('cache-manager'),
-    cookieParser = require('cookie-parser'),
-    express      = require('express'),
-    logger       = require('morgan'),
-    path         = require('path'),
-    redisStore   = require('cache-manager-redis'),
-    Sequelize    = require('sequelize');
+var bcrypt            = require('bcrypt');
+var bodyParser        = require('body-parser'),
+    cacheManager      = require('cache-manager'),
+    cookieParser      = require('cookie-parser'),
+    express           = require('express'),
+    expressSession    = require('express-session'),
+    logger            = require('morgan'),
+    passport          = require('passport'),
+    path              = require('path'),
+    redisStore        = require('cache-manager-redis'),
+    RedisSessionStore = require('connect-redis')(expressSession),
+    Sequelize         = require('sequelize');
 
 // Load Config
 var config = require('./config');
@@ -20,7 +23,7 @@ var redisCache = cacheManager.caching({
   host : redisOpts.host || 'localhost',
   port : redisOpts.port || 6379,
   db   : redisOpts.db || 0,
-  ttl  : redisOpts.ttl || 3600
+  ttl  : redisOpts.cacheTtl || 3600 // 5 minutes in seconds
 });
 
 // Init DB
@@ -53,10 +56,13 @@ var OAuthToken = require('./models/oauth/token')(sequelize, Sequelize);
 OAuthToken.belongsTo(User);
 OAuthToken.belongsTo(OAuthClient);
 
-sequelize.sync().then(function () {
-});
+sequelize.sync();
+
+// Load Libraries
+var ks = require('./lib/ks')(redisCache, Keystore);
 
 // Load Controllers
+var ksController   = require('./controllers/ks')(ks);
 var userController = require('./controllers/user')(redisCache, User, OAuthClient, OAuthCode, OAuthToken);
 
 // Load Routes
@@ -78,12 +84,37 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
 
+// Configuring Passport
+app.use(expressSession({
+  store            : new RedisSessionStore({
+    host: redisOpts.host || 'localhost',
+    port: redisOpts.port || 6379,
+    db  : redisOpts.db || 0,
+    ttl : redisOpts.sessionTtl || 86400 // 24 hours in seconds
+  }),
+  secret           : config.vesta.secret,
+  saveUninitialized: true,
+  resave           : true
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
 // api
 var apiRouter = express.Router();
 
 apiRouter.route('/oauth/client')
   .post(userController.isAuthenticated, userController.postClients)
   .get(userController.isAuthenticated, userController.getClients);
+
+apiRouter.route('/keystore')
+  .post(userController.isAuthenticated, ksController.postKs)
+  .put(userController.isAuthenticated, ksController.postKs)
+  .get(userController.isAuthenticated, ksController.getKs);
+
+apiRouter.route('/keystore/:key')
+  .post(userController.isAuthenticated, ksController.postToKs)
+  .put(userController.isAuthenticated, ksController.postToKs)
+  .get(userController.isAuthenticated, ksController.getToKs);
 
 apiRouter.route('/users')
   .post(userController.isAuthenticated, userController.postUsers)

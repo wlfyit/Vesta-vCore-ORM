@@ -5,10 +5,13 @@ module.exports = function (sequelize, Sequelize) {
       type      : Sequelize.STRING,
       notNull  : false,
       primaryKey: true,
-      unique    : true
+      unique    : true,
+      validate: {
+        is: /^[a-z0-9\-_:]+$/i
+      }
     },
     value: {
-      type    : Sequelize.STRING(1024)
+      type    : Sequelize.TEXT
     }
   });
 

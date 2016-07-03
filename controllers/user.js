@@ -1,14 +1,16 @@
 'use strict';
 
-var BasicStrategy = require('passport-http').BasicStrategy,
-    bcrypt        = require('bcrypt'),
-    passport      = require('passport'),
-    validator     = require('validator');
+var BasicStrategy  = require('passport-http').BasicStrategy,
+    BearerStrategy = require('passport-http-bearer').Strategy,
+    bcrypt         = require('bcrypt'),
+    passport       = require('passport'),
+    validator      = require('validator');
 
 module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
-  var cachePrefix = 'cache:user:',
-      cacheTtl    = 300,
-      saltRounds  = 12;
+  var cachePrefixClient = 'cache:oauthclient:',
+      cachePrefixUser   = 'cache:user:',
+      cacheTtl          = 300,
+      saltRounds        = 12;
 
   var userController = {};
 
@@ -16,7 +18,7 @@ module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
 
   passport.use(new BasicStrategy(
     function (username, password, callback) {
-      cache.wrap(cachePrefix + username, function (cacheCallback) {
+      cache.wrap(cachePrefixUser + username, function (cacheCallback) {
         User.findOne({
           where: {
             username: username
@@ -26,7 +28,7 @@ module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
             return cacheCallback(null, false);
           }
 
-          // Load hash from your password DB.
+          // Load hash from DB.
           bcrypt.compare(password, user.password, function (err, isMatch) {
             if (err) {
               return cacheCallback(err);
@@ -47,22 +49,62 @@ module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
   userController.isAuthenticated = passport.authenticate('basic', {session: false});
 
   passport.use('client-basic', new BasicStrategy(
-    function(username, password, callback) {
+    function (username, password, callback) {
+      cache.wrap(cachePrefixClient + username, function (cacheCallback) {
+        OAuthClient.findOne({
+          where: {
+            name: username
+          }
+        }).then(function (client) {
+          // No client found with that id
+          if (!client) {
+            return callback(null, false);
+          }
 
+          // Load hash from DB.
+          bcrypt.compare(password, client.secret, function (err, isMatch) {
+            if (err) {
+              return cacheCallback(err);
+            }
 
-      Client.findOne({ id: username }, function (err, client) {
-        if (err) { return callback(err); }
+            // Password did not match
+            if (!isMatch) {
+              return cacheCallback(null, false);
+            }
 
-        // No client found with that id or bad password
-        if (!client || client.secret !== password) { return callback(null, false); }
-
-        // Success
-        return callback(null, client);
-      });
+            // Success
+            return cacheCallback(null, client);
+          })
+        })
+      }, {ttl: cacheTtl}, callback)
     }
   ));
   userController.isClientAuthenticated = passport.authenticate('client-basic', {session: false});
 
+  passport.use(new BearerStrategy(
+    function (accessToken, callback) {
+      OAuthToken.findOne({
+        where: {
+          value: accessToken
+        }
+      }).then(function (token) {
+        // No client found with that id
+        if (!token) {
+          return callback(null, false);
+        }
+
+        User.findOne({
+          where: {
+            id: token.userId
+          }
+        }).then(function (user) {
+          // Simple example with no scope
+          callback(null, user, {scope: '*'});
+        })
+      })
+    }
+  ));
+  userController.isBearerAuthenticated = passport.authenticate('bearer', { session: false });
 
   // User Resource
 
@@ -124,9 +166,7 @@ module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
       };
 
       OAuthClient.create(client).then(function (client) {
-        //client.setUser(req.user.id).then(function(){
         return res.json(client);
-        //});
       }).catch(function (error) {
         res.status(400);
         return res.json(error);

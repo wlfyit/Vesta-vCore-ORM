@@ -1,4 +1,5 @@
 'use strict';
+var SequelizeTokenify = require('sequelize-tokenify');
 
 module.exports = function (sequelize, Sequelize) {
   var OAuthCode = sequelize.define('oauth_code', {
@@ -10,10 +11,15 @@ module.exports = function (sequelize, Sequelize) {
     redirectUri: {
       type     : Sequelize.STRING,
       allowNull: false,
-      validate: {
+      validate : {
         isUrl: true
       }
     }
+  });
+
+  SequelizeTokenify.tokenify(OAuthCode, {
+    field : 'value',
+    length: 32
   });
 
   return OAuthCode;
