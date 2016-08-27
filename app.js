@@ -45,6 +45,7 @@ var Keystore = require('./models/keystore')(sequelize, Sequelize);
 var Phrase   = require('./models/phrase')(sequelize, Sequelize);
 var User     = require('./models/user')(sequelize, Sequelize);
 
+// OAuth
 var OAuthClient = require('./models/oauth/client')(sequelize, Sequelize);
 OAuthClient.belongsTo(User);
 
@@ -56,7 +57,58 @@ var OAuthToken = require('./models/oauth/token')(sequelize, Sequelize);
 OAuthToken.belongsTo(User);
 OAuthToken.belongsTo(OAuthClient);
 
-sequelize.sync();
+// Telegram
+var TelegramAudio     = require('./models/telegram/audio')(sequelize, Sequelize);
+var TelegramChat      = require('./models/telegram/chat')(sequelize, Sequelize);
+var TelegramContact   = require('./models/telegram/contact')(sequelize, Sequelize);
+var TelegramLocation  = require('./models/telegram/location')(sequelize, Sequelize);
+var TelegramPhotoSize = require('./models/telegram/photosize')(sequelize, Sequelize);
+var TelegramUser      = require('./models/telegram/user')(sequelize, Sequelize);
+var TelegramVoice     = require('./models/telegram/voice')(sequelize, Sequelize);
+
+var TelegramDocument = require('./models/telegram/document')(sequelize, Sequelize);
+TelegramDocument.belongsTo(TelegramPhotoSize, {as: 'Thumb'});
+
+var TelegramSticker = require('./models/telegram/sticker')(sequelize, Sequelize);
+TelegramSticker.belongsTo(TelegramPhotoSize, {as: 'Thumb'});
+
+var TelegramMessageEntity = require('./models/telegram/messageentity')(sequelize, Sequelize);
+TelegramMessageEntity.belongsTo(TelegramUser, {as: 'User'});
+
+var TelegramVenue = require('./models/telegram/venue')(sequelize, Sequelize);
+TelegramVenue.belongsTo(TelegramLocation, {as: 'Location'});
+
+var TelegramVideo = require('./models/telegram/video')(sequelize, Sequelize);
+TelegramVideo.belongsTo(TelegramPhotoSize, {as: 'Thumb'});
+
+var TelegramMessage = require('./models/telegram/message')(sequelize, Sequelize);
+TelegramMessage.belongsTo(TelegramUser, {as: 'From'});
+TelegramMessage.belongsTo(TelegramChat, {as: 'Chat'});
+TelegramMessage.belongsTo(TelegramUser, {as: 'ForwardFrom'});
+TelegramMessage.belongsTo(TelegramChat, {as: 'ForwardFromChat'});
+TelegramMessage.belongsTo(TelegramMessage, {as: 'ReplyToMessage'});
+TelegramMessage.belongsToMany(TelegramChat, {as: 'Entities', through: 'telegram_message_messageentity'});
+TelegramMessage.belongsTo(TelegramAudio, {as: 'Audio'});
+TelegramMessage.belongsTo(TelegramDocument, {as: 'Document'});
+TelegramMessage.belongsToMany(TelegramPhotoSize, {as: 'Photo', through: 'telegram_message_photo'});
+TelegramMessage.belongsTo(TelegramSticker, {as: 'Sticker'});
+TelegramMessage.belongsTo(TelegramVideo, {as: 'Video'});
+TelegramMessage.belongsTo(TelegramVoice, {as: 'Voice'});
+TelegramMessage.belongsTo(TelegramContact, {as: 'Contact'});
+TelegramMessage.belongsTo(TelegramLocation, {as: 'Location'});
+TelegramMessage.belongsTo(TelegramVenue, {as: 'Venue'});
+TelegramMessage.belongsTo(TelegramUser, {as: 'NewChatMember'});
+TelegramMessage.belongsTo(TelegramUser, {as: 'LeftChatMember'});
+TelegramMessage.belongsToMany(TelegramPhotoSize, {as: 'NewChatPhoto', through: 'telegram_message_newchatphoto'});
+TelegramMessage.belongsTo(TelegramMessage, {as: 'PinnedMessage'});
+
+sequelize.sync({force: true}).done(function() {
+  return User.create({
+    username: 'John',
+    password: 'Hancock',
+    email: 'asdf@asdf.com'
+  });
+});
 
 // Load Libraries
 var ks = require('./lib/ks')(redisCache, Keystore);
