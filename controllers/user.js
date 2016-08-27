@@ -29,7 +29,7 @@ module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
           }
 
           // Load hash from DB.
-          bcrypt.compare(password, user.password, function (err, isMatch) {
+          bcrypt.compare(password, user.password_hash, function (err, isMatch) {
             if (err) {
               return cacheCallback(err);
             }
@@ -111,20 +111,18 @@ module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
   userController.postUsers = function (req, res) {
     var passValidation = req.body.password || '';
     if (passValidation.length > 7) {
-      bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
-        var user = {
-          username: req.body.username,
-          password: hash,
-          email   : req.body.email
-        };
+      var user = {
+        username: req.body.username,
+        password: req.body.password,
+        email   : req.body.email
+      };
 
-        User.create(user).then(function (user) {
-          return res.json(user);
-        }).catch(function (error) {
-          res.status(400);
-          return res.json(error);
-        });
-      })
+      User.create(user).then(function (user) {
+        return res.json(user);
+      }).catch(function (error) {
+        res.status(400);
+        return res.json(error);
+      });
     }
     else {
       res.status(400);
