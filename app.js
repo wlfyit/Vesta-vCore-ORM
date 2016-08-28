@@ -17,7 +17,9 @@ var bodyParser        = require('body-parser'),
 // Load Config
 var config = require('./config');
 
-// init Logging
+// ****************
+// * init Logging *
+// ****************
 var logger = new (winston.Logger)({
   transports: [
     new (require("winston-postgresql").PostgreSQL)({
@@ -32,7 +34,9 @@ var logger = new (winston.Logger)({
   ]
 });
 
-// Init Caching 
+// ****************
+// * Init Caching *
+// ****************
 var redisOpts  = config.redis || {};
 var redisCache = cacheManager.caching({
   store: redisStore,
@@ -42,7 +46,9 @@ var redisCache = cacheManager.caching({
   ttl  : redisOpts.cacheTtl || 3600 // 5 minutes in seconds
 });
 
-// Init DB
+// ***********
+// * Init DB *
+// ***********
 var sequelize = new Sequelize(config.pg, {
   define: {
     paranoid: true
@@ -140,11 +146,21 @@ var TelegramDB = {
 sequelize.sync({force: false}).done(function () {
   logger.info('db synced');
 
-  return User.create({
-    username: 'admin',
-    password: 'admin',
-    email   : 'asdf@asdf.com'
+  User.findAll({
+    attributes: [[sequelize.fn('COUNT', sequelize.col('username')), 'users']]
+  }).then(function(result){
+    if (result[0].dataValues.users == 0) {
+      return User.create({
+        username: 'admin',
+        password: 'admin',
+        email   : 'asdf@asdf.com'
+      });
+    }
+    else {
+      return true
+    }
   });
+
 });
 
 // Load Libraries
