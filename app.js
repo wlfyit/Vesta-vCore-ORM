@@ -106,7 +106,7 @@ TelegramMessage.belongsTo(TelegramChat, {as: 'Chat'});
 TelegramMessage.belongsTo(TelegramUser, {as: 'ForwardFrom'});
 TelegramMessage.belongsTo(TelegramChat, {as: 'ForwardFromChat'});
 TelegramMessage.belongsTo(TelegramMessage, {as: 'ReplyToMessage'});
-TelegramMessage.belongsToMany(TelegramChat, {as: 'Entities', through: 'telegram_message_messageentity'});
+TelegramMessage.belongsToMany(TelegramMessageEntity, {as: 'Entities', through: 'telegram_message_messageentity'});
 TelegramMessage.belongsTo(TelegramAudio, {as: 'Audio'});
 TelegramMessage.belongsTo(TelegramDocument, {as: 'Document'});
 TelegramMessage.belongsToMany(TelegramPhotoSize, {as: 'Photo', through: 'telegram_message_photo'});

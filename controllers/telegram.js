@@ -310,9 +310,8 @@ module.exports = function (logger, redisCache, ks, TgDB) {
             });
           }
           else {
-            done(null, newSticker);
+            done(null, newEntity);
           }
-          done(null, newSticker);
         });
       }
       else {

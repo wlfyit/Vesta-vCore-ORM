@@ -2,10 +2,15 @@
 
 module.exports = function (sequelize, Sequelize) {
   var TelegramMessage = sequelize.define('telegram_message', {
+    id       : {
+      type         : Sequelize.INTEGER,
+      unique       : true,
+      primaryKey   : true,
+      allowNull    : false,
+      autoIncrement: true
+    },
     message_id          : {
       type      : Sequelize.INTEGER,
-      unique    : true,
-      primaryKey: true,
       allowNull : false
     },
     date                : {
