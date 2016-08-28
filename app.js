@@ -6,15 +6,31 @@ var bodyParser        = require('body-parser'),
     cookieParser      = require('cookie-parser'),
     express           = require('express'),
     expressSession    = require('express-session'),
-    logger            = require('morgan'),
+    morgan            = require('morgan'),
     passport          = require('passport'),
     path              = require('path'),
     redisStore        = require('cache-manager-redis'),
     RedisSessionStore = require('connect-redis')(expressSession),
-    Sequelize         = require('sequelize');
+    Sequelize         = require('sequelize'),
+    winston           = require('winston');
 
 // Load Config
 var config = require('./config');
+
+// init Logging
+var logger = new (winston.Logger)({
+  transports: [
+    new (require("winston-postgresql").PostgreSQL)({
+      "connString": config.pg,
+      "tableName" : "winston_logs",
+      "level"     : "debug"
+    }),
+    new (winston.transports.Console)({
+      colorize: true,
+      level   : 'debug'
+    })
+  ]
+});
 
 // Init Caching 
 var redisOpts  = config.redis || {};
@@ -28,7 +44,10 @@ var redisCache = cacheManager.caching({
 
 // Init DB
 var sequelize = new Sequelize(config.pg, {
-  native: true // SSL Support
+  define: {
+    paranoid: true
+  },
+  native: true // SSL Support,
 });
 
 // Test Connection
@@ -102,11 +121,29 @@ TelegramMessage.belongsTo(TelegramUser, {as: 'LeftChatMember'});
 TelegramMessage.belongsToMany(TelegramPhotoSize, {as: 'NewChatPhoto', through: 'telegram_message_newchatphoto'});
 TelegramMessage.belongsTo(TelegramMessage, {as: 'PinnedMessage'});
 
-sequelize.sync({force: true}).done(function() {
+var TelegramDB = {
+  Audio        : TelegramAudio,
+  Chat         : TelegramChat,
+  Contact      : TelegramContact,
+  Document     : TelegramDocument,
+  Location     : TelegramLocation,
+  Message      : TelegramMessage,
+  MessageEntity: TelegramMessageEntity,
+  PhotoSize    : TelegramPhotoSize,
+  Sticker      : TelegramSticker,
+  User         : TelegramUser,
+  Venue        : TelegramVenue,
+  Video        : TelegramVideo,
+  Voice        : TelegramVoice
+};
+
+sequelize.sync({force: false}).done(function () {
+  logger.info('db synced');
+
   return User.create({
-    username: 'John',
-    password: 'Hancock',
-    email: 'asdf@asdf.com'
+    username: 'admin',
+    password: 'admin',
+    email   : 'asdf@asdf.com'
   });
 });
 
@@ -114,8 +151,9 @@ sequelize.sync({force: true}).done(function() {
 var ks = require('./lib/ks')(redisCache, Keystore);
 
 // Load Controllers
-var ksController   = require('./controllers/ks')(ks);
-var userController = require('./controllers/user')(redisCache, User, OAuthClient, OAuthCode, OAuthToken);
+var ksController       = require('./controllers/ks')(ks);
+var telegramController = require('./controllers/telegram')(logger, redisCache, ks, TelegramDB);
+var userController     = require('./controllers/user')(logger, redisCache, User, OAuthClient, OAuthCode, OAuthToken);
 
 // Load Routes
 var routes = require('./routes/index'),
@@ -128,7 +166,7 @@ app.set('trust proxy', true);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-app.use(logger('dev'));
+app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());

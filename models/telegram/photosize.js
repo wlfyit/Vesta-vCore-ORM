@@ -16,6 +16,9 @@ module.exports = function (sequelize, Sequelize) {
       type     : Sequelize.INTEGER,
       allowNull: false
     },
+    file_path: {
+      type: Sequelize.STRING
+    },
     file_size: {
       type: Sequelize.INTEGER
     }

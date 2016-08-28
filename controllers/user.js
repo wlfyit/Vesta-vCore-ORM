@@ -6,7 +6,7 @@ var BasicStrategy  = require('passport-http').BasicStrategy,
     passport       = require('passport'),
     validator      = require('validator');
 
-module.exports = function (cache, User, OAuthClient, OAuthCode, OAuthToken) {
+module.exports = function (logger, cache, User, OAuthClient, OAuthCode, OAuthToken) {
   var cachePrefixClient = 'cache:oauthclient:',
       cachePrefixUser   = 'cache:user:',
       cacheTtl          = 300,
