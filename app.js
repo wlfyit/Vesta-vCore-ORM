@@ -1,6 +1,5 @@
 'use strict';
 // Load Modules
-var bcrypt            = require('bcrypt');
 var bodyParser        = require('body-parser'),
     cacheManager      = require('cache-manager'),
     cookieParser      = require('cookie-parser'),
@@ -148,7 +147,7 @@ sequelize.sync({force: false}).done(function () {
 
   User.findAll({
     attributes: [[sequelize.fn('COUNT', sequelize.col('username')), 'users']]
-  }).then(function(result){
+  }).then(function (result) {
     if (result[0].dataValues.users == 0) {
       return User.create({
         username: 'admin',
@@ -170,6 +169,7 @@ var ks = require('./lib/ks')(redisCache, Keystore);
 var ksController       = require('./controllers/ks')(ks);
 var telegramController = require('./controllers/telegram')(logger, redisCache, ks, TelegramDB);
 var userController     = require('./controllers/user')(logger, redisCache, User, OAuthClient, OAuthCode, OAuthToken);
+var weatherController  = require('./controllers/weather')(logger, redisCache, ks);
 
 // Load Routes
 var routes = require('./routes/index'),
@@ -227,8 +227,10 @@ apiRouter.route('/users')
   .get(userController.isAuthenticated, userController.getUsers);
 
 apiRouter.route('/users/:username')
-//.post(userController.postUser)
   .get(userController.isAuthenticated, userController.getUser);
+
+apiRouter.route('/weather/:datatype')
+  .get(userController.isAuthenticated, weatherController.routeGet);
 
 app.use('/api', apiRouter);
 
